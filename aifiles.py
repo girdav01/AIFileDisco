@@ -15,12 +15,52 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
+import platform
+import socket
+import uuid
+
 try:
     import pwd
     import grp
     _HAS_POSIX_USERS = True
 except ImportError:
     _HAS_POSIX_USERS = False
+
+
+# ---------------------------------------------------------------------------
+# System Identity
+# ---------------------------------------------------------------------------
+
+def get_system_identity() -> dict:
+    """Capture the identity of the machine running the scanner."""
+    try:
+        local_ip = socket.gethostbyname(socket.gethostname())
+    except Exception:
+        local_ip = "unknown"
+
+    try:
+        mac_raw = uuid.getnode()
+        mac_addr = ":".join(f"{(mac_raw >> (8 * i)) & 0xFF:02x}" for i in reversed(range(6)))
+    except Exception:
+        mac_addr = "unknown"
+
+    # Stable machine ID: hash of MAC + hostname (consistent across runs)
+    machine_id = hashlib.sha256(f"{mac_addr}:{socket.gethostname()}".encode()).hexdigest()[:16]
+
+    return {
+        "hostname": socket.gethostname(),
+        "fqdn": socket.getfqdn(),
+        "ip_address": local_ip,
+        "mac_address": mac_addr,
+        "machine_id": machine_id,
+        "os": platform.system(),
+        "os_version": platform.version(),
+        "os_release": platform.release(),
+        "platform": platform.platform(),
+        "architecture": platform.machine(),
+        "username": os.getenv("USER") or os.getenv("USERNAME") or "unknown",
+        "python_version": platform.python_version(),
+    }
 
 try:
     from rich.console import Console
@@ -1433,6 +1473,7 @@ class OutputFormatter:
 def _build_json_payload(results: List[FileResult], summary: ScanSummary) -> dict:
     """Build a Pandas-friendly JSON structure from scan results."""
     return {
+        "system": get_system_identity(),
         "scan_metadata": {
             "scan_path": summary.scan_path,
             "scan_time": summary.scan_time,
@@ -1778,6 +1819,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--config", default=None, metavar="FILE",
         help="Path to config file (default: auto-detect aifiles.config.json)",
     )
+    parser.add_argument(
+        "--push", default=None, metavar="URL",
+        help="Push report to central dashboard (e.g., http://central:8510)",
+    )
     return parser
 
 
@@ -1894,7 +1939,38 @@ def main() -> None:
         log_path = append_integrity_log(report_dir, scan_path, integrity, report_path)
         print(f"  Integrity log: {log_path}")
 
+    # Push to central dashboard
+    if args.push:
+        _push_report(args.push, results, summary)
+
     sys.exit(0 if results else 1)
+
+
+def _push_report(central_url: str, results: List[FileResult], summary: ScanSummary) -> None:
+    """Push scan report to the central dashboard."""
+    import urllib.request
+    import urllib.error
+
+    payload = _build_json_payload(results, summary)
+    url = central_url.rstrip("/") + "/api/report"
+    data = json.dumps(payload).encode("utf-8")
+
+    req = urllib.request.Request(
+        url, data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read())
+            print(f"\n  \u2714 Report pushed to {central_url}")
+            print(f"    Machine: {result.get('hostname', '?')} ({result.get('machine_id', '?')})")
+            print(f"    Alerts: {result.get('alerts_generated', 0)}, Changes: {result.get('changes_detected', 0)}")
+    except urllib.error.URLError as e:
+        print(f"\n  \u2716 Failed to push report to {central_url}: {e}", file=sys.stderr)
+    except Exception as e:
+        print(f"\n  \u2716 Push error: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":

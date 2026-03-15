@@ -24,6 +24,7 @@ from aifiles import (
     ScanConfig,
     format_size,
     format_timestamp,
+    get_system_identity,
     _build_json_payload,
     _ensure_report_dir,
     run_integrity_check,
@@ -73,6 +74,12 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 
   /* Main layout */
   .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* System identity bar */
+  .system-bar { display: flex; gap: 20px; flex-wrap: wrap; padding: 8px 14px; margin-bottom: 12px;
+                background: rgba(0,210,255,.05); border: 1px solid rgba(0,210,255,.15);
+                border-radius: 8px; font-size: 12px; color: var(--text-dim); }
+  .system-bar span { white-space: nowrap; }
 
   /* Summary cards */
   .summary-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -397,6 +404,18 @@ function render() {
 
   let html = '';
 
+  // System identity bar
+  const sys = scanData.system || {};
+  if (sys.hostname) {
+    html += `<div class="system-bar">
+      <span title="Hostname">\uD83D\uDCBB ${esc(sys.hostname)}</span>
+      <span title="OS">${esc(sys.os)} ${esc(sys.os_release)}</span>
+      <span title="IP Address">\uD83C\uDF10 ${esc(sys.ip_address)}</span>
+      <span title="User">\uD83D\uDC64 ${esc(sys.username)}</span>
+      <span title="Machine ID">\uD83D\uDD11 ${esc(sys.machine_id)}</span>
+    </div>`;
+  }
+
   // Summary cards
   html += `<div class="summary-cards">
     <div class="card"><div class="card-label">Files Found</div><div class="card-value">${s.total_files}</div></div>
@@ -514,6 +533,7 @@ function render() {
   html += `<label class="opt-check"><input type="checkbox" ${optIntegrity?'checked':''} onchange="toggleIntegrity(this.checked)"> Integrity Check</label>`;
   html += '<span style="flex:1"></span>';
   html += `<button class="btn-browse" onclick="exportJson()" title="Export scan results as JSON (Pandas-compatible)">\u2B07 Export JSON</button>`;
+  html += `<button class="btn-browse" onclick="pushToCentral()" title="Push report to Central Dashboard">\uD83D\uDCE4 Push to Central</button>`;
   html += '</div>';
 
   // Dynamic columns
@@ -882,6 +902,36 @@ function exportJson() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+// --- Push to Central ---
+function pushToCentral() {
+  if (!scanData || !scanData.files) return;
+  const centralUrl = prompt('Enter Central Dashboard URL:', 'http://localhost:8510');
+  if (!centralUrl) return;
+
+  const payload = {
+    system: scanData.system || {},
+    scan_metadata: scanData.summary,
+    files: scanData.files,
+    integrity: scanData.integrity || null,
+  };
+
+  fetch(centralUrl.replace(/\/$/, '') + '/api/report', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload),
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(result => {
+    alert(`Report pushed to Central Dashboard!\n\nHost: ${result.hostname}\nAlerts: ${result.alerts_generated}\nChanges: ${result.changes_detected}`);
+  })
+  .catch(err => {
+    alert('Failed to push report: ' + err.message + '\n\nMake sure central.py is running.');
+  });
+}
 </script>
 </body>
 </html>
@@ -1007,6 +1057,7 @@ class ScanHandler(BaseHTTPRequestHandler):
         results, summary = scanner.scan()
 
         response = {
+            "system": get_system_identity(),
             "summary": {
                 "scan_path": summary.scan_path,
                 "scan_time": summary.scan_time,
