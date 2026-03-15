@@ -277,6 +277,7 @@ const ALL_CATS = ['all','data','model','config','vector','checkpoint','source','
 
 fetch('/api/default-path').then(r=>r.json()).then(d=>{
   document.getElementById('scanPath').value = d.path || '';
+
 });
 
 function runScan() {

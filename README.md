@@ -8,13 +8,37 @@ Scans directories to discover AI-related files — datasets, models, configs, ve
 
 ---
 
+## Screenshots
+
+### Dashboard Overview
+![Dashboard with charts](screenshots/02_dashboard_charts.png)
+*Scan results with file count, total size, and breakdown by category and extension.*
+
+### Security Alerts
+![Security alerts](screenshots/03_security_alerts.png)
+*Automatic alerts for deserialization risks (pickle/joblib), embedded secrets, overly permissive file access, and more.*
+
+### Category Filters & Table View
+![Table view with filters](screenshots/04_table_view.png)
+*Filter by category, min size, and sort by any column. Toggle Table/Tree views, enable Permissions, Hashes, or Integrity Check on demand.*
+
+### Tree View
+![Tree view](screenshots/05_tree_view.png)
+*Collapsible folder tree with file counts and sizes per directory.*
+
+### Directory Browser
+![Browse dialog](screenshots/06_browse_dialog.png)
+*Built-in directory browser for navigating the filesystem without typing paths.*
+
+---
+
 ## Quick Start
 
 ### Option 1: Run directly (no install)
 
 ```bash
-git clone https://github.com/davidgirard/AIFileFinder.git
-cd AIFileFinder
+git clone https://github.com/girdav01/AIFileDisco.git
+cd AIFileDisco
 
 # CLI scan
 python3 aifiles.py /path/to/scan
