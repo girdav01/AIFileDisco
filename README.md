@@ -10,25 +10,14 @@ Scans directories to discover AI-related files — datasets, models, configs, ve
 
 ## Screenshots
 
-### Dashboard Overview
-![Dashboard with charts](screenshots/02_dashboard_charts.png)
-*Scan results with file count, total size, and breakdown by category and extension.*
+Run the web dashboard (`python3 server.py`) and scan a directory to see:
 
-### Security Alerts
-![Security alerts](screenshots/03_security_alerts.png)
-*Automatic alerts for deserialization risks (pickle/joblib), embedded secrets, overly permissive file access, and more.*
-
-### Category Filters & Table View
-![Table view with filters](screenshots/04_table_view.png)
-*Filter by category, min size, and sort by any column. Toggle Table/Tree views, enable Permissions, Hashes, or Integrity Check on demand.*
-
-### Tree View
-![Tree view](screenshots/05_tree_view.png)
-*Collapsible folder tree with file counts and sizes per directory.*
-
-### Directory Browser
-![Browse dialog](screenshots/06_browse_dialog.png)
-*Built-in directory browser for navigating the filesystem without typing paths.*
+- **Dashboard Overview** — Scan results with file count, total size, and breakdown by category and extension
+- **Security Alerts** — Automatic alerts for deserialization risks, embedded secrets, overly permissive access
+- **Category Filters & Table View** — Filter by category/size, sort by any column, toggle Table/Tree views
+- **Tree View** — Collapsible folder hierarchy with file counts and sizes per directory
+- **Directory Browser** — Built-in filesystem navigator for selecting scan paths
+- **Integrity Check** — Compare scans to detect new, changed, and deleted files
 
 ---
 
@@ -69,7 +58,7 @@ docker run -p 8505:8505 -v /your/data:/data aifilefinder
 ### Option 4: One-line install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/davidgirard/AIFileFinder/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/girdav01/AIFileDisco/main/install.sh | bash
 ```
 
 ---
@@ -144,6 +133,8 @@ options:
   --permissions         Compute file owner/group/permissions
   --hashes              Compute SHA-256 hashes
   --integrity           Compare against previous report for changes
+  --push URL            Push report to central dashboard
+  --api-key KEY         API key for authenticating to central
 ```
 
 ---
@@ -317,6 +308,47 @@ When permissions are computed, AI File Discovery flags overly permissive files:
 | ⚠️ **too_open** | Unusual execute permissions on non-source files |
 
 These alerts appear in the dashboard table, tree view, and JSON reports.
+
+---
+
+## Central Dashboard
+
+Aggregate scan reports from multiple machines into a corporate-wide view:
+
+```bash
+# Start the central dashboard (with API key authentication)
+python3 central.py --api-key generate
+# → Prints the generated API key to use with clients
+
+# Or specify your own key
+python3 central.py --api-key my-secret-key-here
+
+# No authentication (open access)
+python3 central.py
+```
+
+### Push Reports to Central
+
+```bash
+# CLI push with authentication
+python3 aifiles.py /path --integrity --push http://central-host:8510 --api-key YOUR_KEY
+
+# Or curl
+curl -X POST http://central-host:8510/api/report \
+     -H 'Content-Type: application/json' \
+     -H 'Authorization: Bearer YOUR_KEY' \
+     -d @report/aifiles_20260314_120000.json
+```
+
+The web dashboard also has a "Push to Central" button with an API key input field.
+
+### Central Dashboard Features
+
+- **Node aggregation** — See all machines reporting AI files
+- **Category breakdown** — Aggregated file counts and sizes across all nodes
+- **Alert tracking** — Secrets, deserialization risks, permissions issues
+- **Change detection** — New, modified, and deleted files across the fleet
+- **Auto-refresh** — Dashboard updates every 30 seconds
 
 ---
 

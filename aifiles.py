@@ -1823,6 +1823,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--push", default=None, metavar="URL",
         help="Push report to central dashboard (e.g., http://central:8510)",
     )
+    parser.add_argument(
+        "--api-key", default=None, metavar="KEY",
+        help="API key for authenticating to the central dashboard",
+    )
     return parser
 
 
@@ -1941,12 +1945,13 @@ def main() -> None:
 
     # Push to central dashboard
     if args.push:
-        _push_report(args.push, results, summary)
+        _push_report(args.push, results, summary, api_key=args.api_key)
 
     sys.exit(0 if results else 1)
 
 
-def _push_report(central_url: str, results: List[FileResult], summary: ScanSummary) -> None:
+def _push_report(central_url: str, results: List[FileResult], summary: ScanSummary,
+                  api_key: str = None) -> None:
     """Push scan report to the central dashboard."""
     import urllib.request
     import urllib.error
@@ -1955,9 +1960,13 @@ def _push_report(central_url: str, results: List[FileResult], summary: ScanSumma
     url = central_url.rstrip("/") + "/api/report"
     data = json.dumps(payload).encode("utf-8")
 
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
     req = urllib.request.Request(
         url, data=data,
-        headers={"Content-Type": "application/json"},
+        headers=headers,
         method="POST",
     )
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # AI File Discovery — Quick Install Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/davidgirard/AIFileFinder/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/girdav01/AIFileDisco/main/install.sh | bash
 set -euo pipefail
 
-REPO="https://github.com/davidgirard/AIFileFinder.git"
+REPO="https://github.com/girdav01/AIFileDisco.git"
 INSTALL_DIR="${HOME}/.aifilefinder"
 
 echo ""

@@ -44,8 +44,8 @@ aifiles = "aifiles:main"
 aifiles-server = "server:main"
 
 [project.urls]
-Homepage = "https://github.com/davidgirard/AIFileFinder"
-Issues = "https://github.com/davidgirard/AIFileFinder/issues"
+Homepage = "https://github.com/girdav01/AIFileDisco"
+Issues = "https://github.com/girdav01/AIFileDisco/issues"
 
 [tool.setuptools]
 py-modules = ["aifiles", "server"]

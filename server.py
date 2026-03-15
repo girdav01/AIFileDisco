@@ -904,10 +904,41 @@ function exportJson() {
 }
 
 // --- Push to Central ---
+let savedCentralUrl = 'http://localhost:8510';
+let savedApiKey = '';
+
 function pushToCentral() {
   if (!scanData || !scanData.files) return;
-  const centralUrl = prompt('Enter Central Dashboard URL:', 'http://localhost:8510');
+
+  // Show push dialog
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:1000;display:flex;align-items:center;justify-content:center';
+  overlay.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:24px;width:420px;max-width:90vw">
+      <h3 style="margin-bottom:16px;color:var(--accent)">Push to Central Dashboard</h3>
+      <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:4px">Central URL</label>
+      <input id="push-url" value="${savedCentralUrl}" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-bottom:12px">
+      <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:4px">API Key <span style="color:var(--text-dim);font-size:11px">(leave blank if none)</span></label>
+      <input id="push-key" type="password" value="${savedApiKey}" placeholder="Bearer token or API key" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;margin-bottom:16px">
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button onclick="this.closest('div[style]').parentElement.remove()" style="padding:8px 16px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text);cursor:pointer">Cancel</button>
+        <button onclick="doPush()" style="padding:8px 16px;background:var(--accent);border:none;border-radius:6px;color:#000;font-weight:600;cursor:pointer">Push Report</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#push-url').focus();
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+function doPush() {
+  const urlEl = document.getElementById('push-url');
+  const keyEl = document.getElementById('push-key');
+  const centralUrl = urlEl.value.trim();
+  const apiKey = keyEl.value.trim();
   if (!centralUrl) return;
+
+  savedCentralUrl = centralUrl;
+  savedApiKey = apiKey;
 
   const payload = {
     system: scanData.system || {},
@@ -916,12 +947,20 @@ function pushToCentral() {
     integrity: scanData.integrity || null,
   };
 
+  const headers = {'Content-Type': 'application/json'};
+  if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+
+  // Remove dialog
+  const overlay = document.querySelector('div[style*="z-index:1000"]');
+  if (overlay) overlay.remove();
+
   fetch(centralUrl.replace(/\/$/, '') + '/api/report', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: headers,
     body: JSON.stringify(payload),
   })
   .then(r => {
+    if (r.status === 401) throw new Error('Unauthorized — check your API key');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.json();
   })
@@ -929,7 +968,7 @@ function pushToCentral() {
     alert(`Report pushed to Central Dashboard!\n\nHost: ${result.hostname}\nAlerts: ${result.alerts_generated}\nChanges: ${result.changes_detected}`);
   })
   .catch(err => {
-    alert('Failed to push report: ' + err.message + '\n\nMake sure central.py is running.');
+    alert('Failed to push report: ' + err.message + '\n\nMake sure central.py is running and the API key is correct.');
   });
 }
 </script>

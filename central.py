@@ -23,8 +23,10 @@ API Endpoints:
 """
 
 import argparse
+import hashlib
 import json
 import os
+import secrets
 import sqlite3
 import sys
 import threading
@@ -491,7 +493,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     <p style="margin-top:8px">Waiting for nodes to report in...</p>
     <p style="margin-top:16px;font-size:13px;color:var(--text-dim)">
       Nodes push reports via:<br>
-      <code style="color:var(--accent)">curl -X POST http://THIS_HOST:PORT/api/report -H 'Content-Type: application/json' -d @report.json</code>
+      <code style="color:var(--accent)">curl -X POST http://THIS_HOST:PORT/api/report -H 'Content-Type: application/json' -H 'Authorization: Bearer YOUR_API_KEY' -d @report.json</code>
     </p>
   </div>
 </div>
@@ -693,6 +695,23 @@ setInterval(loadOverview, 30000);
 
 class CentralHandler(BaseHTTPRequestHandler):
     db: CentralDB = None
+    api_key: str = None  # Set at startup; None = no auth required
+
+    def _check_auth(self) -> bool:
+        """Validate API key for protected endpoints. Returns True if authorized."""
+        if not self.api_key:
+            return True  # No key configured — open access
+        auth = self.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:].strip()
+            if token == self.api_key:
+                return True
+        # Also accept X-API-Key header
+        if self.headers.get("X-API-Key", "").strip() == self.api_key:
+            return True
+        self._send_error(401, "Unauthorized — valid API key required. "
+                         "Use 'Authorization: Bearer <key>' or 'X-API-Key: <key>' header.")
+        return False
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
@@ -729,6 +748,8 @@ class CentralHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
 
         if parsed.path == "/api/report":
+            if not self._check_auth():
+                return
             self._handle_report()
         else:
             self._send_error(404, "Not found")
@@ -789,7 +810,7 @@ class CentralHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
         self.end_headers()
 
     def log_message(self, format: str, *args) -> None:
@@ -812,20 +833,46 @@ def main() -> None:
         "--db", default="central.db",
         help="SQLite database path (default: central.db)",
     )
+    parser.add_argument(
+        "--api-key", default=None, metavar="KEY",
+        help="Require API key for report submission. If set to 'generate', "
+             "a random key will be created. If omitted, no auth is required.",
+    )
     args = parser.parse_args()
+
+    # Resolve API key
+    api_key = args.api_key
+    if api_key == "generate":
+        api_key = secrets.token_urlsafe(32)
+    elif api_key and os.path.isfile(api_key):
+        # Allow reading key from a file
+        api_key = open(api_key).read().strip()
 
     db = CentralDB(args.db)
     CentralHandler.db = db
+    CentralHandler.api_key = api_key
 
     server = HTTPServer(("0.0.0.0", args.port), CentralHandler)
     print(f"\n  AI File Discovery — Central Dashboard")
     print(f"  http://localhost:{args.port}")
     print(f"  Database: {os.path.abspath(args.db)}")
-    print(f"\n  Nodes push reports via:")
-    print(f"    curl -X POST http://HOST:{args.port}/api/report \\")
-    print(f"         -H 'Content-Type: application/json' -d @report.json")
-    print(f"\n  Or use the scanner directly:")
-    print(f"    python3 aifiles.py /path --integrity --push http://HOST:{args.port}")
+    if api_key:
+        print(f"\n  API Key (required for POST /api/report):")
+        print(f"    {api_key}")
+        print(f"\n  Nodes push reports via:")
+        print(f"    curl -X POST http://HOST:{args.port}/api/report \\")
+        print(f"         -H 'Content-Type: application/json' \\")
+        print(f"         -H 'Authorization: Bearer {api_key}' \\")
+        print(f"         -d @report.json")
+        print(f"\n  Or use the scanner directly:")
+        print(f"    python3 aifiles.py /path --integrity --push http://HOST:{args.port} --api-key {api_key}")
+    else:
+        print(f"\n  ⚠  No API key configured — report submission is open (use --api-key to secure)")
+        print(f"\n  Nodes push reports via:")
+        print(f"    curl -X POST http://HOST:{args.port}/api/report \\")
+        print(f"         -H 'Content-Type: application/json' -d @report.json")
+        print(f"\n  Or use the scanner directly:")
+        print(f"    python3 aifiles.py /path --integrity --push http://HOST:{args.port}")
     print(f"\n  Press Ctrl+C to stop\n")
 
     try:
