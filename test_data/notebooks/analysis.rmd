@@ -1,0 +1,17 @@
+---
+title: Model Evaluation
+output: html_document
+---
+
+```{r setup}
+library(tidyverse)
+library(caret)
+```
+
+## Results
+
+The model achieved 94.2% accuracy on the test set.
+
+```{r plot}
+ggplot(results, aes(x=epoch, y=loss)) + geom_line()
+```

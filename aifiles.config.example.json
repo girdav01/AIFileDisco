@@ -1,0 +1,41 @@
+{
+  "_comment": "AI File Discovery — Custom configuration file",
+  "_usage": "Copy this file to 'aifiles.config.json' or '~/.aifiles.json' and edit as needed.",
+
+  "extensions": {
+    "_comment": "Map file extensions to categories. Values: data, model, config, vector, checkpoint, source, document, multimedia, skill, agent, secret",
+
+    ".custom_model": ["model"],
+    ".training_log": ["document", "data"],
+    ".weights": ["model"],
+    ".embeddings": ["vector", "data"],
+    ".sql": ["source"],
+    ".xml": ["config"],
+    ".ini": ["config"],
+    ".toml": ["config"],
+    ".cfg": ["config"],
+    ".env.example": ["document"]
+  },
+
+  "risks": {
+    "_comment": "Assign risk levels to extensions. Level: 'danger' or 'warning'. Reason: human-readable explanation.",
+
+    ".exe": { "level": "danger", "reason": "Executable file — potential security risk" },
+    ".dll": { "level": "warning", "reason": "Dynamic library — review before loading" },
+    ".so": { "level": "warning", "reason": "Shared object — review before loading" },
+    ".wasm": { "level": "warning", "reason": "WebAssembly binary — review origin" }
+  },
+
+  "ambiguous": [
+    "_comment: Extensions that should use heuristic (content-based) classification instead of deterministic",
+    ".xml",
+    ".toml"
+  ],
+
+  "ignore_extensions": [
+    "_comment: Extensions to exclude from classification entirely",
+    ".bak",
+    ".tmp",
+    ".swp"
+  ]
+}

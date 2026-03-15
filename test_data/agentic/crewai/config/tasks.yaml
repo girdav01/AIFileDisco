@@ -1,0 +1,9 @@
+research_task:
+  description: Research the latest AI trends and developments in {topic}
+  expected_output: A detailed report with key findings and sources
+  agent: researcher
+
+writing_task:
+  description: Write an article based on the research findings
+  expected_output: A well-structured 500-word article
+  agent: writer

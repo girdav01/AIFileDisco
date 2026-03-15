@@ -1,0 +1,6 @@
+{
+  "model_type": "bert",
+  "hidden_size": 768,
+  "num_attention_heads": 12,
+  "num_hidden_layers": 12
+}

@@ -1,0 +1,16 @@
+name: web_search
+description: Search the web for information
+tool_use:
+  type: function_call
+  parameters:
+    query:
+      type: string
+      description: Search query
+    max_results:
+      type: integer
+      default: 5
+actions:
+  - search
+  - summarize
+langchain:
+  tool_class: WebSearchTool

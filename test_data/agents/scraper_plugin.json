@@ -1,0 +1,29 @@
+{
+  "name": "web_scraper",
+  "description": "Scrape and parse web pages",
+  "plugin": true,
+  "actions": [
+    {
+      "name": "fetch_url",
+      "parameters": {
+        "url": {
+          "type": "string"
+        }
+      }
+    },
+    {
+      "name": "extract_text",
+      "parameters": {
+        "selector": {
+          "type": "string"
+        }
+      }
+    }
+  ],
+  "tool_use": {
+    "type": "function_call"
+  },
+  "autogen": {
+    "agent_type": "AssistantAgent"
+  }
+}

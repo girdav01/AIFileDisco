@@ -1,0 +1,7 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.000
+This tutorial covers fine-tuning BERT.
+
+00:00:04.000 --> 00:00:09.000
+We will use the Hugging Face Transformers library.

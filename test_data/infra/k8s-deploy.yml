@@ -1,0 +1,13 @@
+# Docker Compose configuration
+version: '3.8'
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - '80:80'
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+volumes:
+  redis_data:

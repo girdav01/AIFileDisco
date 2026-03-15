@@ -1,0 +1,17 @@
+# Stable Diffusion training config
+model:
+  pretrained: stabilityai/stable-diffusion-2-1
+  attention: xformers
+  embedding_dim: 768
+
+training:
+  learning_rate: 1e-5
+  batch_size: 1
+  gradient_checkpointing: true
+  mixed_precision: fp16
+  epochs: 100
+  scheduler: constant_with_warmup
+
+dataset:
+  resolution: 512
+  center_crop: true

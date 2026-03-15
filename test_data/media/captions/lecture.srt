@@ -1,0 +1,11 @@
+1
+00:00:00,000 --> 00:00:05,000
+Welcome to the machine learning lecture.
+
+2
+00:00:05,000 --> 00:00:12,000
+Today we will discuss transformer architectures.
+
+3
+00:00:12,000 --> 00:00:20,000
+Let's start with self-attention mechanisms.

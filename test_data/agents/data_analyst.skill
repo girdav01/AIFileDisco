@@ -1,0 +1,10 @@
+name: data_analyst
+version: 1.0
+capabilities:
+  - csv_analysis
+  - chart_generation
+  - statistical_summary
+inputs:
+  data_path:
+    type: file
+    extensions: [csv, parquet, json]
